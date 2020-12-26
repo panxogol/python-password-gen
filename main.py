@@ -1,6 +1,8 @@
 # --- IMPORTS ---
 import tkinter as tk
-
+from tkinter import messagebox
+import random
+import pyperclip
 
 # --- CONSTANTS ---
 # COLORS
@@ -28,10 +30,29 @@ BUTTON_FONT_STYLE = "bold"
 
 # --- FUNCTIONS ---
 def main():
-
     # ---------------------------- PASSWORD GENERATOR ------------------------------- #
     def generate_password():
-        pass
+        # Password Generator Project
+        letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+                   'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N',
+                   'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+        numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        symbols = ['!', '#', '$', '%', '&', '(', ')', '*', '+']
+
+        nr_letters = random.randint(8, 10)
+        nr_symbols = random.randint(2, 4)
+        nr_numbers = random.randint(2, 4)
+
+        password_list = [random.choice(letters) for _ in range(nr_letters)]
+        password_list.extend([random.choice(symbols) for _ in range(nr_symbols)])
+        password_list.extend([random.choice(numbers) for _ in range(nr_numbers)])
+
+        random.shuffle(password_list)
+
+        password = "".join(password_list)
+
+        txt_password.delete(0, tk.END)
+        txt_password.insert(0, password)
 
     # ---------------------------- SAVE PASSWORD ------------------------------- #
     def save_password():
@@ -39,12 +60,40 @@ def main():
         username = txt_email.get()
         password = txt_password.get()
 
-        with open(file="data.txt", mode="a") as file:
-            file.write(f"{website} | {username} | {password}\n")
+        if website == "" or username == "" or password == "":
+            messagebox.showerror(title="Blank fields", message="Please write some values in the blank fields.")
+            if website == "":
+                txt_website.focus()
+            elif username == "":
+                txt_email.focus()
+            else:
+                txt_password.focus()
 
-        txt_website.delete(0, tk.END)
-        txt_password.delete(0, tk.END)
-        txt_website.focus()
+        else:
+            msgb_title = website
+            msgb_message = f"These are the details you have entered\n" \
+                           f"Email/Username: {username}\n" \
+                           f"Password: {password}\n" \
+                           f"Are you sure that you want to save these values?"
+            data_is_ok = messagebox.askokcancel(title=msgb_title, message=msgb_message)
+
+            if data_is_ok:
+                with open(file="data.txt", mode="a") as file:
+                    file.write(f"{website} | {username} | {password}\n")
+
+                txt_website.delete(0, tk.END)
+                txt_password.delete(0, tk.END)
+                txt_website.focus()
+
+                try:
+                    pyperclip.copy(password)
+                    messagebox.showinfo(title="Password", message="Yor new password was copied to clipboard")
+
+                except ImportError as err:
+                    err_msg = "Your password was saved but not copied to the clipboard. Please check if you" \
+                              "have installed the pyperclip package.\n" \
+                              f"{err}"
+                    messagebox.showerror(title="Error", message=err_msg)
 
     # ---------------------------- UI SETUP ------------------------------- #
     # --- WINDOW SETUP ---
@@ -80,7 +129,7 @@ def main():
     txt_email = tk.Entry(fg=BLUE, width=36)
     txt_email.config(font=(ENTRY_FONT, ENTRY_FONT_SIZE, ENTRY_FONT_STYLE))
     txt_email.grid(row=2, column=1, columnspan=2)
-    txt_email.insert(tk.END, "martinez.jfco@hotmail.com")
+    txt_email.insert(tk.END, "your.email@email.com")
 
     txt_password = tk.Entry(fg=BLUE, width=21)
     txt_password.config(font=(ENTRY_FONT, ENTRY_FONT_SIZE, ENTRY_FONT_STYLE))

@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import messagebox
 import random
 import pyperclip
+import json
 
 # --- CONSTANTS ---
 # COLORS
@@ -18,7 +19,6 @@ LABEL_FONT_SIZE = 18
 LABEL_FONT_STYLE = "normal"
 LABEL_FONT_ALIGN = "e"
 LABEL_WIDTH = 15
-
 ENTRY_FONT = "Consolas"
 ENTRY_FONT_SIZE = 16
 ENTRY_FONT_STYLE = "normal"
@@ -59,6 +59,12 @@ def main():
         website = txt_website.get()
         username = txt_email.get()
         password = txt_password.get()
+        data_dict = {
+            website: {
+                "username": username,
+                "password": password
+            }
+        }
 
         if website == "" or username == "" or password == "":
             messagebox.showerror(title="Blank fields", message="Please write some values in the blank fields.")
@@ -78,28 +84,70 @@ def main():
             data_is_ok = messagebox.askokcancel(title=msgb_title, message=msgb_message)
 
             if data_is_ok:
-                with open(file="data.txt", mode="a") as file:
-                    file.write(f"{website} | {username} | {password}\n")
-
-                txt_website.delete(0, tk.END)
-                txt_password.delete(0, tk.END)
-                txt_website.focus()
-
                 try:
+                    with open(file="data.json", mode="r") as file:
+                        # Reading old data
+                        data = json.load(file)
+
+                # In case the file does not exist
+                except FileNotFoundError:
+                    with open(file="data.json", mode="w") as file:
+                        # Saving the updated data in the file with an indentation of 4 spaces
+                        json.dump(data_dict, file, indent=4)
+
+                else:
+                    # Updating with the new data in data_dict
+                    data.update(data_dict)
+
+                    with open(file="data.json", mode="w") as file:
+                        # Saving the updated data in the file with an indentation of 4 spaces
+                        json.dump(data, file, indent=4)
+
+                finally:
+                    txt_website.delete(0, tk.END)
+                    txt_password.delete(0, tk.END)
+                    txt_website.focus()
+
+                    # Copy the password to the clipboard
                     pyperclip.copy(password)
                     messagebox.showinfo(title="Password", message="Yor new password was copied to clipboard")
 
-                except ImportError as err:
-                    err_msg = "Your password was saved but not copied to the clipboard. Please check if you" \
-                              "have installed the pyperclip package.\n" \
-                              f"{err}"
-                    messagebox.showerror(title="Error", message=err_msg)
+    # --- SEARCH DATA ---
+    def search_data():
+        website = txt_website.get()
+        try:
+            with open(file="data.json", mode="r") as file:
+                data = json.load(file)
+
+        except FileNotFoundError:
+            message = "Not data file found."
+            messagebox.showerror(title="File not found", message=message)
+
+        else:
+            msg_title = f"{website}"
+
+            try:
+                username = data[website]["username"]
+
+            except KeyError as err:
+                title_error = "Website not found"
+                msg_error = f'The Website {err} has not been found in the data file'
+                messagebox.showerror(title=title_error, message=msg_error)
+            else:
+                password = data[website]["password"]
+                msg_info = f'Email/Username: {username}\n' \
+                           f'Password: {password}'
+                messagebox.showinfo(title=msg_title, message=msg_info)
+                # Copy the password to the clipboard
+                pyperclip.copy(password)
+                messagebox.showinfo("Password Copied", "Password copied to clipboard.")
 
     # ---------------------------- UI SETUP ------------------------------- #
     # --- WINDOW SETUP ---
     window = tk.Tk()
     window.title("Password Gen")
-    window.config(padx=100, pady=50, bg=WHITE_BLUE)
+    window.config(padx=20, pady=20, bg=WHITE_BLUE)
+    window.resizable(width=False, height=False)
 
     # --- CANVAS ---
     canvas = tk.Canvas(width=200, height=200, highlightthickness=0, bg=WHITE_BLUE)
@@ -121,9 +169,9 @@ def main():
     lb_password.grid(row=3, column=0)
 
     # --- ENTRIES ---
-    txt_website = tk.Entry(fg=BLUE, width=36)
+    txt_website = tk.Entry(fg=BLUE, width=21)
     txt_website.config(font=(ENTRY_FONT, ENTRY_FONT_SIZE, ENTRY_FONT_STYLE))
-    txt_website.grid(row=1, column=1, columnspan=2)
+    txt_website.grid(row=1, column=1, columnspan=1)
     txt_website.focus()
 
     txt_email = tk.Entry(fg=BLUE, width=36)
@@ -136,13 +184,17 @@ def main():
     txt_password.grid(row=3, column=1, columnspan=1)
 
     # --- BUTTONS ---
-    btn_generate = tk.Button(text="Generate Password", fg=DARK_BLUE)
+    btn_generate = tk.Button(text="Generate Password", fg=DARK_BLUE, width=18)
     btn_generate.config(font=(BUTTON_FONT, BUTTON_FONT_SIZE, BUTTON_FONT_STYLE), command=generate_password)
     btn_generate.grid(row=3, column=2)
 
     btn_add = tk.Button(text="Add", fg=DARK_BLUE, width=47)
     btn_add.config(font=(BUTTON_FONT, BUTTON_FONT_SIZE, BUTTON_FONT_STYLE), command=save_password)
     btn_add.grid(row=4, column=1, columnspan=2)
+
+    btn_search = tk.Button(text="Search", fg=DARK_BLUE, width=18)
+    btn_search.config(font=(BUTTON_FONT, BUTTON_FONT_SIZE, BUTTON_FONT_STYLE), command=search_data)
+    btn_search.grid(row=1, column=2)
 
     # --- MAINLOOP ---
     window.mainloop()
